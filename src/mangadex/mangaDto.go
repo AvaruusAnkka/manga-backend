@@ -1,21 +1,23 @@
-package main
+package mangadex
 
 type MangaResponse struct {
-	Data []struct {
-		ID         string `json:"id"`
-		Attributes struct {
-			Title       EN     `json:"title"`
-			Description EN     `json:"description"`
-			Status      string `json:"status"`
-			CreatedAt   string `json:"createdat"`
-			UpdatedAt   string `json:"updatedat"`
-			Tags        []Tags `json:"tags"`
-		} `json:"attributes"`
-		Relationships []struct {
-			ID   string `json:"id"`
-			Type string `json:"type"`
-		} `json:"relationships"`
-	} `json:"data"`
+	Data []Data `json:"data"`
+}
+
+type Data struct {
+	ID         string `json:"id"`
+	Attributes struct {
+		Title       en     `json:"title"`
+		Description en     `json:"description"`
+		Status      string `json:"status"`
+		CreatedAt   string `json:"createdat"`
+		UpdatedAt   string `json:"updatedat"`
+		Tags        []tags `json:"tags"`
+	} `json:"attributes"`
+	Relationships []struct {
+		ID   string `json:"id"`
+		Type string `json:"type"`
+	} `json:"relationships"`
 }
 
 type CoverResponse struct {
@@ -32,13 +34,13 @@ type Chapter struct {
 	ImageUrls []string `json:"imageUrls"`
 }
 
-type Tags struct {
+type tags struct {
 	Attributes struct {
-		Name EN `json:"name"`
+		Name en `json:"name"`
 	} `json:"attributes"`
 }
 
-type EN struct {
+type en struct {
 	EN string `json:"en"`
 }
 
