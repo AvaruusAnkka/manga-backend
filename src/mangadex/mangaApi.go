@@ -3,13 +3,16 @@ package mangadex
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 )
 
 const baseUrl = "http://api.mangadex.org/"
+const coverUrl = "https://uploads.mangadex.org/covers/"
 
 func GetManga(c *gin.Context) {
 	fullUrl := baseUrl + "manga?" + getParams(c)
@@ -26,6 +29,8 @@ func GetManga(c *gin.Context) {
 	}
 
 	list := mangaConverter(mangaResponse)
+	getCover(list)
+
 	c.IndentedJSON(http.StatusOK, list)
 }
 
@@ -49,9 +54,7 @@ func getTags(data *Data) []string {
 	return tagList
 }
 
-func getCover(data *Data) string {
-	const coverUrl = "https://uploads.mangadex.org/covers/"
-
+func getCoverUrl(data *Data) string {
 	var coverId string
 	for _, relationship := range data.Relationships {
 		if relationship.Type == "cover_art" {
@@ -60,19 +63,7 @@ func getCover(data *Data) string {
 		}
 	}
 
-	fileUrl := baseUrl + "cover/" + coverId + "?includes[]=manga"
-	res, err := http.Get(fileUrl)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	defer res.Body.Close()
-
-	var cover CoverResponse
-	if err := json.NewDecoder(res.Body).Decode(&cover); err != nil {
-		fmt.Println("Error decoding JSON for cover:", err, fileUrl)
-	}
-
-	return coverUrl + data.ID + "/" + cover.Data.Attributes.FileName
+	return baseUrl + "cover/" + coverId + "?includes[]=manga"
 }
 
 func mangaConverter(res MangaResponse) []Manga {
@@ -86,9 +77,37 @@ func mangaConverter(res MangaResponse) []Manga {
 			Updated:     data.Attributes.UpdatedAt,
 			Status:      data.Attributes.Status,
 			Tags:        getTags(&res.Data[i]),
-			CoverUrl:    getCover(&res.Data[i]),
+			CoverUrl:    getCoverUrl(&res.Data[i]),
 		})
 	}
 
 	return list
+}
+
+func getCover(mangas []Manga) {
+	var wg sync.WaitGroup
+	for i, manga := range mangas {
+		wg.Add(1)
+
+		go func(manga Manga) {
+			defer wg.Done()
+
+			res, err := http.Get(manga.CoverUrl)
+			if err != nil {
+				log.Fatal(err)
+				return
+			}
+			defer res.Body.Close()
+
+			var result CoverResponse
+			if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
+				fmt.Println("Error decoding JSON for cover:", err, manga.CoverUrl)
+				return
+			}
+
+			mangas[i].CoverUrl = coverUrl + manga.ID + "/" + result.Data.Attributes.FileName
+		}(manga)
+
+		wg.Wait()
+	}
 }
