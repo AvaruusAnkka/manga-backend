@@ -20,23 +20,20 @@ type Data struct {
 	} `json:"relationships"`
 }
 
+type ChapterResponse struct {
+	Data struct {
+		Attributes struct {
+			LastChapter string `json:"lastChapter"`
+		} `json:"attributes"`
+	} `json:"data"`
+}
+
 type CoverResponse struct {
 	Data struct {
 		Attributes struct {
 			FileName string `json:"filename"`
 		} `json:"attributes"`
 	} `json:"data"`
-}
-
-type AggregateResponse struct {
-	Volumes map[string]Volume `json:"volumes"`
-}
-
-type Volume struct {
-	Chapters struct {
-		Chapter int    `json:"chapter"`
-		ID      string `json:"id"`
-	} `json:"chapters"`
 }
 
 type tags struct {
@@ -50,15 +47,15 @@ type en struct {
 }
 
 type Manga struct {
-	ID          string    `json:"id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Chapters    []Chapter `json:"chapters"`
-	CoverUrl    string    `json:"coverUrl"`
-	Created     string    `json:"created"`
-	Status      string    `json:"status"`
-	Tags        []string  `json:"tags"`
-	Updated     string    `json:"updated"`
+	ID          string   `json:"id"`
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
+	Chapters    int      `json:"chapters"`
+	CoverUrl    string   `json:"coverUrl"`
+	Created     string   `json:"created"`
+	Status      string   `json:"status"`
+	Tags        []string `json:"tags"`
+	Updated     string   `json:"updated"`
 }
 
 type Chapter struct {
@@ -66,3 +63,18 @@ type Chapter struct {
 	Number    int      `json:"number"`
 	ImageUrls []string `json:"imageUrls"`
 }
+
+type AggregateResponse struct {
+	Result  string `json:"result"`
+	Volumes map[string]struct {
+		Volume   string                 `json:"volumes"`
+		Count    int                    `json:"count"`
+		Chapters map[string]interface{} `json:"chapters"`
+	} `json:"volumes"`
+}
+
+// type Volume struct {
+// 	Volume   string                 `json:"volumes"`
+// 	Count    int                    `json:"count"`
+// 	Chapters map[string]interface{} `json:"chapters"`
+// }
