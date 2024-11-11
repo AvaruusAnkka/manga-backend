@@ -67,14 +67,19 @@ type Chapter struct {
 type AggregateResponse struct {
 	Result  string `json:"result"`
 	Volumes map[string]struct {
-		Volume   string                 `json:"volumes"`
-		Count    int                    `json:"count"`
-		Chapters map[string]interface{} `json:"chapters"`
+		Volume   string `json:"volumes"`
+		Count    int    `json:"count"`
+		Chapters map[string]struct {
+			ID      string `json:"id"`
+			Chapter string `json:"chapter"`
+		} `json:"chapters"`
 	} `json:"volumes"`
 }
 
-// type Volume struct {
-// 	Volume   string                 `json:"volumes"`
-// 	Count    int                    `json:"count"`
-// 	Chapters map[string]interface{} `json:"chapters"`
-// }
+type HomeResponse struct {
+	Baseurl string `json:"baseUrl"`
+	Chapter struct {
+		Hash string   `json:"hash"`
+		Data []string `json:"data"`
+	} `json:"chapter"`
+}
