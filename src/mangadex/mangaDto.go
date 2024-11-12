@@ -46,35 +46,22 @@ type en struct {
 	EN string `json:"en"`
 }
 
-type Manga struct {
-	ID          string   `json:"id"`
-	Title       string   `json:"title"`
-	Description string   `json:"description"`
-	Chapters    int      `json:"chapters"`
-	CoverUrl    string   `json:"coverUrl"`
-	Created     string   `json:"created"`
-	Status      string   `json:"status"`
-	Tags        []string `json:"tags"`
-	Updated     string   `json:"updated"`
-}
-
-type Chapter struct {
-	Id        string   `json:"id"`
-	Number    int      `json:"number"`
-	ImageUrls []string `json:"imageUrls"`
-}
-
 type AggregateResponse struct {
 	Result  string `json:"result"`
 	Volumes map[string]struct {
-		Volume   string                 `json:"volumes"`
-		Count    int                    `json:"count"`
-		Chapters map[string]interface{} `json:"chapters"`
+		Volume   string `json:"volumes"`
+		Count    int    `json:"count"`
+		Chapters map[string]struct {
+			ID      string `json:"id"`
+			Chapter string `json:"chapter"`
+		} `json:"chapters"`
 	} `json:"volumes"`
 }
 
-// type Volume struct {
-// 	Volume   string                 `json:"volumes"`
-// 	Count    int                    `json:"count"`
-// 	Chapters map[string]interface{} `json:"chapters"`
-// }
+type HomeResponse struct {
+	Baseurl string `json:"baseUrl"`
+	Chapter struct {
+		Hash string   `json:"hash"`
+		Data []string `json:"data"`
+	} `json:"chapter"`
+}

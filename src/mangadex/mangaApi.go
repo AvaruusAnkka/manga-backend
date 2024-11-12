@@ -9,16 +9,17 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/AvaruusAnkka/manga-backend/src/manga"
 	"github.com/gin-gonic/gin"
 )
 
 const baseUrl = "http://api.mangadex.org/"
-const coverUrl = "https://uploads.mangadex.org/covers/"
+const coverUrl = "https://uploads.mangadex.org/"
 
 func GetManga(c *gin.Context) {
-	fullUrl := baseUrl + "manga?" + getParams(c)
+	url := baseUrl + "manga?" + getParams(c)
 
-	res, err := http.Get(fullUrl)
+	res, err := http.Get(url)
 	if err != nil {
 		c.String(400, err.Error())
 	}
@@ -26,13 +27,85 @@ func GetManga(c *gin.Context) {
 
 	var mangaResponse MangaResponse
 	if err := json.NewDecoder(res.Body).Decode(&mangaResponse); err != nil {
-		c.String(400, "Error decoding JSON for manga: "+err.Error())
+		c.String(400, err.Error())
 	}
 
-	covers, chapters := getCoverAndChapter(mangaResponse)
-	list := mangaConverter(mangaResponse, covers, chapters)
+	list := mangaConverter(mangaResponse)
 
 	c.IndentedJSON(http.StatusOK, list)
+}
+
+func GetChapter(c *gin.Context) {
+	id := c.Query("id")
+	chapterNumber := c.Query("chapter")
+
+	number, err := strconv.Atoi(chapterNumber)
+
+	if id == "" || chapterNumber == "" || err != nil {
+		c.String(400, "Missing/Invalid queries")
+		return
+	}
+
+	chapterId, err := getChapterId(id, chapterNumber)
+	if err != nil {
+		c.IndentedJSON(400, err)
+		return
+	}
+
+	chapter := manga.Chapter{
+		Id:        chapterId,
+		Number:    number,
+		ImageUrls: getChapterUrls(chapterId),
+	}
+
+	c.IndentedJSON(200, chapter)
+}
+
+func getChapterUrls(id string) (list []string) {
+	res, _ := http.Get(baseUrl + "at-home/server/" + id)
+
+	var home HomeResponse
+	json.NewDecoder(res.Body).Decode(&home)
+
+	for _, file := range home.Chapter.Data {
+		fileUrl := coverUrl + "data/" + home.Chapter.Hash + "/" + file
+		list = append(list, fileUrl)
+	}
+
+	return
+}
+
+func getChapterId(id string, chapter string) (chapterId string, err error) {
+	url := baseUrl + "manga/" + id + "/aggregate?translatedLanguage%5B%5D=en"
+	res, err := http.Get(url)
+	if err != nil {
+		return
+	}
+	defer res.Body.Close()
+
+	var aggregate AggregateResponse
+	if err = json.NewDecoder(res.Body).Decode(&aggregate); err != nil {
+		return
+	}
+
+	for _, volume := range aggregate.Volumes {
+		for _, number := range volume.Chapters {
+			if chapter == number.Chapter {
+				chapterId = number.ID
+			}
+		}
+	}
+
+	return
+}
+
+func getFileUrls(data HomeResponse) (list []string) {
+	for _, file := range data.Chapter.Data {
+		fileUrl := coverUrl + "data/" + data.Chapter.Hash + "/" + file
+		list = append(list, fileUrl)
+	}
+
+	return
 }
 
 func getParams(c *gin.Context) string {
@@ -50,7 +123,6 @@ func getTags(data *Data) (tagList []string) {
 	for _, tag := range data.Attributes.Tags {
 		tagList = append(tagList, tag.Attributes.Name.EN)
 	}
-
 	return
 }
 
@@ -73,16 +145,18 @@ func getCoverUrl(data *Data) string {
 
 	var result CoverResponse
 	if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
-		fmt.Println("Error decoding JSON for cover:", err.Error())
+		fmt.Println(err.Error())
 		return ""
 	}
 
-	return coverUrl + data.ID + "/" + result.Data.Attributes.FileName
+	return coverUrl + "covers/" + data.ID + "/" + result.Data.Attributes.FileName
 }
 
-func mangaConverter(res MangaResponse, covers []string, chapters []int) (list []Manga) {
+func mangaConverter(res MangaResponse) (list []manga.Manga) {
+	covers, chapters := getCoverAndChapter(res)
+
 	for i, data := range res.Data {
-		list = append(list, Manga{
+		list = append(list, manga.Manga{
 			ID:          data.ID,
 			Title:       data.Attributes.Title.EN,
 			Description: data.Attributes.Description.EN,
@@ -132,10 +206,10 @@ func getChapterTotal(id string) (latestChapter int) {
 	json.Unmarshal(body, &response)
 
 	for _, volume := range response.Volumes {
-		for i := range volume.Chapters {
-			number, err := strconv.Atoi(i)
-			if err == nil && latestChapter < number {
-				latestChapter = number
+		for _, chapter := range volume.Chapters {
+			num, err := strconv.Atoi(chapter.Chapter)
+			if err == nil && latestChapter < num {
+				latestChapter = num
 			}
 		}
 	}

@@ -10,7 +10,7 @@ func main() {
 
 	router.GET("/manga", mangadex.GetManga)
 
-	// router.GET("/chapter", getChapter)
+	router.GET("/chapter", mangadex.GetChapter)
 
 	router.Run("localhost:8080")
 }
