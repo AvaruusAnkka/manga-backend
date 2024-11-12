@@ -39,30 +39,22 @@ func GetChapter(c *gin.Context) {
 	id := c.Query("id")
 	chapterNumber := c.Query("chapter")
 
-	if id == "" || chapterNumber == "" {
-		c.String(400, "Missing queries")
+	number, err := strconv.Atoi(chapterNumber)
+
+	if id == "" || chapterNumber == "" || err != nil {
+		c.String(400, "Missing/Invalid queries")
 		return
 	}
 
-	num, err := strconv.Atoi(chapterNumber)
+	chapterId, err := getChapterId(id, chapterNumber)
 	if err != nil {
 		c.IndentedJSON(400, err)
 		return
 	}
-
-	url := baseUrl + "manga/" + id + "/aggregate?translatedLanguage%5B%5D=en"
-	res, err := http.Get(url)
-	if err != nil {
-		c.IndentedJSON(400, err)
-		return
-	}
-	defer res.Body.Close()
-
-	chapterId := getChapterId(res, chapterNumber)
 
 	chapter := manga.Chapter{
 		Id:        chapterId,
-		Number:    num,
+		Number:    number,
 		ImageUrls: getChapterUrls(chapterId),
 	}
 
@@ -83,9 +75,18 @@ func getChapterUrls(id string) (list []string) {
 	return
 }
 
-func getChapterId(res *http.Response, chapter string) (chapterId string) {
+func getChapterId(id string, chapter string) (chapterId string, err error) {
+	url := baseUrl + "manga/" + id + "/aggregate?translatedLanguage%5B%5D=en"
+	res, err := http.Get(url)
+	if err != nil {
+		return
+	}
+	defer res.Body.Close()
+
 	var aggregate AggregateResponse
-	json.NewDecoder(res.Body).Decode(&aggregate)
+	if err = json.NewDecoder(res.Body).Decode(&aggregate); err != nil {
+		return
+	}
 
 	for _, volume := range aggregate.Volumes {
 		for _, number := range volume.Chapters {
